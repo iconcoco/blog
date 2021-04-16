@@ -8,9 +8,9 @@ Vue.use(VueRouter)
 const RM = new VueRouter({ routes, mode: 'history' })
 
 RM.beforeEach((to, from, next)=>{
-  // if (!to.name) {
-  //   return next({ path: '/blog/index' })
-  // }
+  if (!to.name) {
+    return next({ path: '/' })
+  }
   next()
 })
 

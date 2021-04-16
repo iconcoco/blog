@@ -3,7 +3,7 @@ const LoginController = new LoginClass()
 
 module.exports = [
   {
-    url: '/api/login',
+    url: '/login',
     type: 'post',
     cb(req, res) {
       const { username, password } = req.body
@@ -28,7 +28,7 @@ module.exports = [
     }
   },
   {
-    url: '/api/regist',
+    url: '/regist',
     type: 'post',
     cb(req, res) {
 

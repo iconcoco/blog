@@ -3,7 +3,7 @@ const routes = [
   {
     path: '/blog',
     name: 'blogApp',
-    component: () => import('@app/pages/blog.vue'),
+    component: () => import('@app/pages/entry.vue'),
     children: [
       {
         path: '/',

@@ -3,7 +3,7 @@ const IndexController = new IndexClass()
 
 module.exports = [
   {
-    url: '/index',
+    url: ['/', '/index'],
     type: 'get',
     cb(req, res) {
       const data = IndexController.getPageInfoData()
