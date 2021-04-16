@@ -1,0 +1,6 @@
+
+# git rm -r --cached views/scripts/
+# git rm -r --cached public/ssr_dist/
+# git rm -r --cached public/pwa_dist/assets/
+
+node_modules*

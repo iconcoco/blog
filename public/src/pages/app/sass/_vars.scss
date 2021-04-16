@@ -1,0 +1,28 @@
+
+$branch_color: #2ab0cb;
+
+
+.blog-block-content {
+  max-width: 1285px;
+  margin: 0 auto;
+}
+
+
+.fadeIn-enter-active{
+  animation: fadeIn  .8s;
+}
+
+.fadeIN-leave-active{
+  opacity: 0;
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(10px)
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0px)
+  }
+}

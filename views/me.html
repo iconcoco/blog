@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+</head>
+<body>
+  <script src="/static/lib/jquery.min.js"></script>
+  <table>
+    <tr>
+      <td>姓名</td>
+      <td>住址</td>
+      <td>工作地址</td>
+    </tr>
+    <tr>
+      <td><%= name %></td>
+      <td><%= address %></td>
+      <td><%= work %></td>
+    </tr>
+  </table>
+  <button id="button">Button(Get)</button>
+  <button id="postButton">Button(Post)</button>
+<script>
+  var ButtonDom = $('#button')
+  var postButton = $('#postButton')
+
+  ButtonDom.on('click', function() {
+    $.get('/me/info', {
+      name:"Donald", 
+      town:"Ducktown"
+    }, function(res) {
+      console.log(res);
+      
+    })
+  })
+
+  postButton.on('click', function() {
+    $.post("/me/getMyCoupon",{
+        name: 'jack',
+        age: 20
+      }, function(res){
+        console.log(res);
+        
+    });
+  })
+</script>
+</body>
+</html>

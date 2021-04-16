@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>web components</title>
+  <style>
+  .shopping {
+    background-color: red !important;
+  }
+
+  img {
+    width: 100%;
+    height: 100%;
+  }
+  </style>
+</head>
+<body>
+  <input type="number" id="input" placeholder="输入数量">
+  <br/>
+  <br/>
+  <br/>
+  <br/>
+  <user-dom id="userDom">
+    <img src="./iphone.jpeg" alt="" slot="img">
+    <button slot="button">取消</button>
+  </user-dom>  
+</body>
+</html>
+
+<template id="componentHtml">
+  <style>
+    * {
+      padding: 0;
+      margin: 0;
+    }
+    /* host指的是 shadow dom的元素 */
+    /* :host {
+      display: block;
+      border: 1px solid red;
+    } */
+    .shopping {
+      width: 600px;
+      display: flex;
+      height: 200px;
+      border: 1px solid #dfdfdf;
+    }
+
+    .shopping-img {
+      width: 30%;
+      height: 100%;
+      background-color: #aaa;
+    }
+
+    .shopping-info {
+      flex: 1;
+      padding-left: 10px;
+
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .shopping-info__goods {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .shopping-info__goods-info .name,
+    .shopping-info__goods-price .pay {
+      height: 40px;
+      line-height: 40px
+    }
+    .shopping-info__goods-info .express {
+      font-size: 12px;
+      color: orange;
+      height: 30px;
+      line-height: 30px;
+    }
+    .shopping-info__goods-info .specialty {
+      height: 30px;
+      line-height: 30px;
+      font-size: 12px;
+      color: orangered;
+    }
+
+    .shopping-info__goods-price {
+      padding-right: 20px;
+      text-align: right;
+    }
+    .shopping-info__goods-price .original,
+    .shopping-info__goods-price .num {
+      font-size: 14px;
+      color: #aaa;
+      height: 30px;
+      line-height: 30px;
+    }
+
+    .shopping-handle {
+      height: 40px;
+      padding-right: 20px;
+      text-align: right;
+    }
+
+    .shopping-handle .button {
+      display: inline-block;
+      height: 30px;
+      line-height: 30px;
+      padding: 0 40px;
+      border: 1px solid #ddd;
+      border-radius: 15px;
+      cursor: pointer;
+    }
+
+    .shopping-handle .button:hover {
+      border-color: #222;
+    }
+  </style>
+
+  <div class="shopping">
+    <div class="shopping-img">
+      <slot name="img"></slot>
+    </div>
+    <div class="shopping-info">
+      <div class="shopping-info__goods">
+        <div class="shopping-info__goods-info">
+          <p class="name">Apple/苹果 iphone 12 1024GB 骚粉</p>
+          <p class="express">3天发货</p>
+          <p class="specialty">七天无理由退换</p>
+        </div>
+        <div class="shopping-info__goods-price">
+          <p class="pay">实付 ¥ <span class="count">6299.00</span></p>
+          <p class="original">¥ <span class="count">6299.00</span></p>
+          <p class="num">×<span class="n">1</span></p>
+        </div>
+      </div>
+      <div class="shopping-handle">
+        <span class="button">退款</span>
+        <slot name="button"></slot>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+  const Input = document.getElementById('input')
+  Input.addEventListener('change', function() {
+    const userDom = document.getElementById('userDom')
+
+    userDom.setAttribute('value', Number(this.value))
+  })
+
+  class UserDom extends HTMLElement {
+    constructor() {
+      super()
+      // 1， 将自定义元素与 shadow dow 进行链接
+      this.shadow = this.attachShadow({ mode: 'closed' })
+
+      const template = document.querySelector('#componentHtml')
+
+      // 2. 往shadow dom 中添加内容
+      this.shadow.appendChild(template.content.cloneNode(true))
+
+      this.addEventListener('click', () => {
+        console.log(666);
+        
+      })
+      
+      this.shadow.querySelector('.button') .addEventListener('click', function() {
+        const bol = confirm('你确定要退款吗？')
+        console.log(bol ? '退款' : '取消退款');
+        
+      })
+    }
+
+    connectedCallback () {
+      console.log('connected');
+      
+    }
+
+    updateShadowInfo (value) {
+      const priceInfo = this.shadow.querySelector('.shopping-info__goods-price')
+      const unit = 6299
+
+      priceInfo.querySelectorAll('.count').forEach((i) => {
+        i.innerHTML = (6299 * value).toFixed(2)
+      })
+      priceInfo.querySelector('.n').innerHTML = value
+    }
+
+    static get observedAttributes() { return ['value', 'type'] }
+
+    attributeChangedCallback(name, oldValue, newValue) {
+      console.log('Custom square element attributes changed.');
+      console.log(name, oldValue, newValue);
+      name == 'value' && this.updateShadowInfo(newValue)
+    }
+  }
+
+  // 定义组件
+  window.customElements.define('user-dom', UserDom);
+</script>
