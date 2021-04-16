@@ -1,0 +1,13 @@
+{
+    "presets": ["react", "env"],
+    "plugins": [
+        "syntax-dynamic-import",
+        [
+            "component",
+            {
+                "libraryName": "element-ui",
+                "styleLibraryName": "theme-chalk"
+            }
+        ]
+    ]
+}
