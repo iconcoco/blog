@@ -1,5 +1,6 @@
+views/package/*
 
-# git rm -r --cached views/scripts/
+# git rm -r --cached views/package/
 # git rm -r --cached public/ssr_dist/
 # git rm -r --cached public/pwa_dist/assets/
 
