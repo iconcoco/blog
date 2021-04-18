@@ -8,8 +8,8 @@ module.exports = [
     url: '/me',
     type: 'get',
     cb: (req, res) => {
-      const meControler = new MeClass()
-      res.render('me', meControler.getPageInfo())
+      const meController = new MeClass()
+      res.render('me', meController.getPageInfo())
     }
   },
   /**

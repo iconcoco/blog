@@ -32,6 +32,7 @@ const options = {
   host: 'localhost',
   compress: true,
   port: CONFIG.port.client,
+  open: true,
   // 允许开发服务器访问本地服务器的包JSON文件，防止跨域
   headers: {
     'Access-Control-Allow-Origin': '*'

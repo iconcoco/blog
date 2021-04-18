@@ -9,17 +9,18 @@ const initRoute = (routers, path = '') => {
     }
 
     if (route.type) {
-      Router[route.type](`${path}${route.url || '/'}`, route.cb || function() {})
+      if (path) {
+        Router.use(path, (() => {
+          Router[route.type](route.url || '/', route.cb || function() {})
+          return Router
+        })())
+      } else {
+        Router[route.type](route.url || '/', route.cb || function() {})
+      }
     }
   })
 }
 
 initRoute(AppRoute)
-
-// blog 路由代表博客路由
-Router['get']('/blog*', (req, res, next) => {
-  res.render('app')
-})
-
 
 module.exports = Router
