@@ -19,7 +19,7 @@
         </router-link>
       </nav>
     </section>
-    <div class="blog-banner" v-if="$route.meta.banner">
+    <div class="blog-banner" v-show="$route.meta.banner">
       <img src="../image/11111.jpg" alt="">
     </div>
     

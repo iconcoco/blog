@@ -17,7 +17,7 @@ const routes = [
         path: 'person',
         name: 'person',
         meta: {
-          banner: true
+          banner: false
         },
         component: () => import('@app/pages/person/person.vue'),
       },
