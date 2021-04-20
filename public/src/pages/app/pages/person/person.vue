@@ -41,7 +41,7 @@
 import '@app/sass/me.scss'
 
 import multiText from '../components/multiText.vue'
-
+import { publishArticle } from '@app/pages/Api/index.js'
 
 export default {
   data() {
@@ -56,10 +56,35 @@ export default {
     multiText
   },
   methods: {
-    handleSubmit () {
+    async handleSubmit () {
       const editorHtml = this.$refs['multiRef'].getEditorVal()
-      console.log(editorHtml);
+      const { title, summary } = this.form
+      if (!title) {
+        return this.$message({
+            message: '请完善文章标题',
+            type: 'warning'
+          })
+      }
+
+      if (!summary) {
+        return this.$message({
+            message: '请完善文章内容简介',
+            type: 'warning'
+          })
+      }
+
+      if (!/[\u4e00-\u9fa5]/gm.test(editorHtml)) {
+        return this.$message({
+            message: '请文章主要内容',
+            type: 'warning'
+          })
+      }
+
+      const result = await publishArticle(Object.assign({}, this.form, {
+        content: editorHtml,
+      }))
       
+      console.log(result);
       
     }
   }

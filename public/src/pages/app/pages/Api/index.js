@@ -6,3 +6,4 @@ export const regist = params => Axios.post('/api/regist', params);
 
 export const getArticle = params => Axios.post('/api/article', params);
 export const getArticleList = params => Axios.get('/api/getArticleList', params);
+export const publishArticle = params => Axios.post('/api/publishArticle', params);
