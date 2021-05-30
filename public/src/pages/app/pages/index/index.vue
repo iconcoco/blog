@@ -49,7 +49,7 @@ export default {
   },
   async mounted() {
     const result = await getArticleList()
-    if (result.code == 0) {
+    if (result && result.code == 0) {
       this.list = result.data
     }
   },

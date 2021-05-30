@@ -41,7 +41,7 @@
 import '@app/sass/me.scss'
 
 import multiText from '../components/multiText.vue'
-import { publishArticle } from '@app/pages/Api/index.js'
+import { publishArticle, editArticle } from '@app/pages/Api/index.js'
 
 export default {
   data() {
@@ -54,6 +54,14 @@ export default {
   },
   components: {
     multiText
+  },
+  async mounted() {
+    if (this.$route.params.id) {
+      const result = await getArticle({ id: this.$route.params.id })
+      if (result && result.code == 0) {
+        this.info = result.data
+      }
+    }
   },
   methods: {
     async handleSubmit () {
@@ -80,11 +88,18 @@ export default {
           })
       }
 
-      const result = await publishArticle(Object.assign({}, this.form, {
-        content: editorHtml,
-      }))
-      
-      console.log(result);
+      if (this.$route.params.id) {
+        // 编辑
+        const result = await editArticle(Object.assign({}, this.form, {
+          id: this.$route.params.id,
+          content: editorHtml,
+        }))
+      } else {
+        // 新增
+        const result = await publishArticle(Object.assign({}, this.form, {
+          content: editorHtml,
+        }))
+      }
       
     }
   }

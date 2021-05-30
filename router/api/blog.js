@@ -6,7 +6,7 @@ let routes = []
 
 // 获取文章列表
 routes.push({
-  url: '/getArticleList',
+  url: '/article/list',
   type: 'get',
   cb(req, res) {
     const data = BlogController.getBlogList()
@@ -44,7 +44,7 @@ routes.push({
 
 // 发表文章
 routes.push({
-  url: '/publishArticle',
+  url: '/article/publish',
   type: 'post',
   async cb(req, res) {
     const { title, summary, content } = req.body

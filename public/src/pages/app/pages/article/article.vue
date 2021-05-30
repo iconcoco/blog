@@ -13,6 +13,13 @@
         <section class="blog-article__header">
           <h3>{{ info.name }}</h3>
           <div class="blog-article__header-info">
+            <span>
+              <a 
+                class="el-icon-edit-outline"
+                href="javascript:;"
+                @click="onEditArticle"
+              ></a>
+            </span>
             <span>2020-09-01</span>
             <span> <i class="el-icon-view"></i> 1234123</span>
           </div>
@@ -45,11 +52,20 @@ export default {
     const routeParams = this.$route.params
     if (routeParams.id) {
       const result = await getArticle({ id: routeParams.id })
-      if (result.code == 0) {
+      if (result && result.code == 0) {
         this.info = result.data
       }
     }
     
+  },
+  methods: {
+    onEditArticle() {
+      // console.log(this.$route);
+      this.$router.push({
+        name: 'person',
+        params: { id: this.$route.params.id }
+      })
+    }
   }
 }
 </script>
