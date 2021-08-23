@@ -2,11 +2,12 @@ const webpack = require('webpack')
 const ExtractTextPlugin = require('extract-text-webpack-plugin') //用于将css从js中抽离出来  可能会碰上不支持高版本的webapck  这时候需要安装 npm install --save-dev extract-text-webpack-plugin@next
 const VueLoaderPlugin = require('vue-loader/lib/plugin') //vue-loader@15.x版本需要用插件来启用
 const path = require('path')
-const MyPlugin = require('./plugins/webpack.my.plugin')
+// const MyPlugin = require('./plugins/webpack.my.plugin')
+// const MyAnalysisPlugin = require('./plugins/webpack.analysis.plugin')
 
 const { getClientEntry, getWebpackHtml } = require('./utils')
 
-const entry = getClientEntry(path.resolve(__dirname, '../public/src/pages/*/index.js'))
+const entry = getClientEntry(path.resolve(__dirname, '../public/src/pages/index/index.js'))
 
 module.exports = {
   entry,
@@ -70,7 +71,7 @@ module.exports = {
       }],
   },
   plugins: [
-    new MyPlugin(),
+    // new MyAnalysisPlugin(),
 
     new webpack.DllReferencePlugin({
       context: __dirname,
