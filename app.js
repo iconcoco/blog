@@ -30,7 +30,7 @@ App.use(middleWare)
 App.use(appRouter)
 App.use((req, res, next) => {
   // 当所有页面找不到时返回单页面应用
-  res.render('404')
+  res.render('app')
 })
 
 App.listen(CONFIG.port.server, () => {

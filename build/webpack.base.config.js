@@ -7,7 +7,7 @@ const path = require('path')
 
 const { getClientEntry, getWebpackHtml } = require('./utils')
 
-const entry = getClientEntry(path.resolve(__dirname, '../public/src/pages/index/index.js'))
+const entry = getClientEntry(path.resolve(__dirname, '../public/src/pages/*/index.js'))
 
 module.exports = {
   entry,
