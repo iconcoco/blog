@@ -28,7 +28,17 @@ const routes = [
           banner: true
         },
         component: () => import('@app/pages/article/article.vue'),
-      }
+      },
+      {
+        path: 'canvas',
+        name: 'canvas',
+        meta: {
+          banner: false,
+          hideHeader: true,
+          hideNav: true
+        },
+        component: () => import('@app/pages/canvas/index.vue'),
+      },
     ]
   },
 ]

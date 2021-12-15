@@ -1,9 +1,15 @@
 <template>
   <div>
-    <header class="blog-hander">
+    <header 
+      class="blog-hander"
+      v-show="!$route.meta.hideHeader"
+    >
       <div class="blog-block-content">BBBB</div>
     </header>
-    <section class="blog-nav">
+    <section
+      class="blog-nav"
+      v-show="!$route.meta.hideNav"
+    >
       <nav class="blog-block-content">
         <router-link 
           :class="{active: $route.name == 'index'}" 
