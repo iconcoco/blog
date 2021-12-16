@@ -1,3 +1,5 @@
+import { loadImg } from './utils'
+
 export default class Paint {
   constructor({
     canvas,
@@ -13,27 +15,26 @@ export default class Paint {
     this.cache = {}
   }
 
+  loaded() {
+    return new Promise(resolve => {
+      this.__loadImage().then(res => {
+        const { mw, mh } = res
+        this.canvas.width = mw
+        this.canvas.height = mh
+        resolve(res)
+      })
+    })
+  }
+
   /**
    * 获取图片信息
    * @returns 
    */
-  __loadImage() {
-    return new Promise(resolve => {
-      if (this.cache.sourceImg) return resolve(this.cache.sourceImg)
-
-      let image = new Image()
-      image.setAttribute('crossOrigin', 'Anonymous')
-      image.onload = () => {
-        const info = {
-          mw: image.width,
-          mh: image.height,
-          image,
-        }
-        this.cache.sourceImg = info
-        resolve(info)
-      }
-      image.src = `data:image/jpeg;base64,${this.imgBlog}`
-    })
+  async __loadImage() {
+    if (this.cache.sourceImg) return this.cache.sourceImg
+    const info = await loadImg(this.imgBlog)
+    this.cache.sourceImg = info
+    return info
   }
 
   /**
@@ -52,7 +53,7 @@ export default class Paint {
   __paintHotPoint() {
     this.ctx.globalCompositeOperation = 'source-over'
     this.ctx.beginPath()
-    this.paintPoints.forEach(({ x, y }, i) => {
+    this.paintPoints.forEach(({ x, y }) => {
       const radius = 7.5 // 圆弧半径
       this.ctx.moveTo(x, y)
       this.ctx.arc(x, y, radius, 0, 2 * Math.PI)
@@ -122,20 +123,20 @@ export default class Paint {
   }
   
   async paint(cutZone) {
-    const { mw, mh, image } = await this.__loadImage()
-    this.canvas.width = mw
-    this.canvas.height = mh
+    const { mw, mh, image } = await this.loaded()
     // 1. 清空画布
     this.ctx.clearRect(0, 0, mw, mh)
     // 2. 绘制蒙层
     this.__paintMasking({ mw, mh })
     // 3. 绘制热区点位 / 可点击区域
     this.__paintHotPoint()
-    this.__paintCornerLine(cutZone)
-    // 4. 绘制空的选择区域
-    this.__paintSelectRect(cutZone)
-    // 5. 再绘制图片
+    if (cutZone) {
+      this.__paintCornerLine(cutZone)
+      // 4. 绘制空的选择区域
+      this.__paintSelectRect(cutZone)
+    }
     this.ctx.globalCompositeOperation = 'destination-over'
+    // 5. 再绘制图片
     this.ctx.drawImage(image, 0, 0, mw, mh, 0, 0, mw, mh)
   }
 }

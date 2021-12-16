@@ -10,6 +10,8 @@ export default class CutImageEvent {
     this.paintPoints = paintPoints
     this.subscribe = subscribe
 
+    this.changeZone = false
+
     // 1. 状态初始化
     this.resetStatus()
     this.cutZone = null
@@ -25,6 +27,7 @@ export default class CutImageEvent {
   resetStatus() {
     this.inCutZone = false
     this.inCtxPath = false
+    this.changeZone = false
 
     this.originCutZone = null
 
@@ -50,8 +53,8 @@ export default class CutImageEvent {
    * 通知变更一个截图的点信息
    * @param {*} pointsData 
    */
-  publishPointData(pointsData) {
-    typeof this.subscribe === 'function' && this.subscribe(pointsData)
+  publishPointData(params) {
+    typeof this.subscribe === 'function' && this.subscribe(params)
   }
 
   /**
@@ -62,12 +65,13 @@ export default class CutImageEvent {
   __mousePointRelateCanvas({ clientX, clientY }) {
     const offsetY = this.canvas.offsetTop
     const offsetX = this.canvas.offsetLeft
+    const { top, left } = this.canvas.getBoundingClientRect()
     const cw = this.canvas.width
     const ch = this.canvas.height
 
     // 当前相对于canvas的坐标点
-    const currentX = clientX - offsetX
-    const currentY = clientY - offsetY
+    const currentX = clientX - (left < 0 ? left : offsetX)
+    const currentY = clientY - (top < 0 ? top : offsetY)
 
     return {
       x: currentX < 0 ? 0 : (currentX > cw ? cw : currentX),
@@ -81,6 +85,7 @@ export default class CutImageEvent {
    * @returns 
    */
   __inZone({ x, y }) {
+    if (!this.originCutZone) return false
     const { x0, y0, width, height } = this.originCutZone
     const x1 = x0 + width
     const y1 = y0 + height
@@ -145,6 +150,8 @@ export default class CutImageEvent {
     let nx1 = x0 + width    // new x1
     let ny1 = y0 + height    // new y1
 
+    const closeDx = 50
+
     switch (type) {
       // 左上
       case 'left-up':
@@ -152,6 +159,9 @@ export default class CutImageEvent {
           // 1 不变
           nx0 += dx
           ny0 += dy
+
+          nx0 = (nx1 - nx0) < closeDx ? (nx1 - closeDx) : nx0
+          ny0 = (ny1 - ny0) < closeDx ? (ny1 - closeDx) : ny0
         }
         break
       // 右上
@@ -161,6 +171,8 @@ export default class CutImageEvent {
           // 1 的y 不变
           ny0 += dy
           nx1 += dx
+
+          ny0 = (ny1 - ny0) < closeDx ? (ny1 - closeDx) : ny0
         }
         break
       // 右下
@@ -178,16 +190,18 @@ export default class CutImageEvent {
           // 1 的x 不变
           nx0 += dx
           ny1 += dy
+
+          nx0 = (nx1 - nx0) < closeDx ? (nx1 - closeDx) : nx0
         }
         break
     }
     const nw = nx1 - nx0
-    const nh = ny1- ny0
+    const nh = ny1 - ny0
     return {
       x0: nx0, 
       y0: ny0, 
-      width: nw < 50 ? 50 : nw, 
-      height: nh < 50 ? 50 : nh
+      width: nw < closeDx ? closeDx : nw, 
+      height: nh < closeDx ? closeDx : nh
     }
   }
 
@@ -226,7 +240,7 @@ export default class CutImageEvent {
 
     this.touch.sx = x
     this.touch.sy = y
-    this.originCutZone = JSON.parse(JSON.stringify(this.cutZone))
+    this.originCutZone = this.cutZone ? JSON.parse(JSON.stringify(this.cutZone)) : null
     // 1. 当前点击是否在裁剪的区域
     this.inCutZone = this.__inZone({ x, y })
     // 2. 当前点击是否在绘画的路径上
@@ -234,8 +248,12 @@ export default class CutImageEvent {
 
     if (this.inCtxPath && !this.inCutZone) {
       // 在绘画路径 && 不再截图区域 === 在热区
+      this.changeZone = true
       const pointsData = this.__getRecentlyHotPoint({ x, y })
-      this.publishPointData(pointsData)
+      this.publishPointData({
+        data: pointsData, 
+        hotPoint: true
+      })
     }
 
     if (this.inCtxPath && this.inCutZone) {
@@ -269,7 +287,10 @@ export default class CutImageEvent {
       }
 
       // 通知修改
-      this.publishPointData(pointsData)
+      this.changeZone = true
+      this.publishPointData({
+        data: pointsData, 
+      })
     }
   }
 
@@ -277,6 +298,14 @@ export default class CutImageEvent {
    * touchend
    */
   touchendEvent() {
+    // 发送给调用
+    if (this.cutZone) {
+      this.publishPointData({
+        data: this.cutZone, 
+        hotPoint: this.inCtxPath && !this.inCutZone,
+        emit: this.changeZone
+      })
+    }
     this.resetStatus()
   }
 }
