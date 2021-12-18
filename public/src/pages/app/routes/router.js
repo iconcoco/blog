@@ -39,6 +39,16 @@ const routes = [
         },
         component: () => import('@app/pages/canvas/index.vue'),
       },
+      {
+        path: 'imageZone',
+        name: 'imageZone',
+        meta: {
+          banner: false,
+          hideHeader: true,
+          hideNav: true
+        },
+        component: () => import('@app/pages/imageZone/index.vue'),
+      },
     ]
   },
 ]
