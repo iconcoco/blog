@@ -16,6 +16,7 @@
         <span 
           v-for="(item, index) in hotZone"
           :key="index"
+          v-show="!inZonePointIndex.includes(index)"
           :style="{
             top: item.y + 'px',
             left: item.x + 'px',
@@ -24,12 +25,18 @@
           @click="onHotZoneClick(item)"
         >{{ index }}</span>
       </template>
+      <!-- guide -->
+      <i
+        v-if="showClipGuide"
+        class="clip-image__clip-guide"
+        :style="textStyle"
+      >{{ clipGuide }}</i>
     </div>
   </div>  
 </template>
 
 <script>
-import { loadImg, clipImage, formattingHotPoints } from './utils.js'
+import { loadImg, clipImage, formattingHotPoints, inZone } from './utils.js'
 import cutZone from './cutZone.vue'
 export default {
   name: 'ClipImage',
@@ -44,11 +51,16 @@ export default {
     },
     hotPoints: {
       type: Array,
-      default: () => [{"x":129.26811249,"y":162.8688348,"width":82.20955149000002,"height":224.36723039999998},{"x":66.36025665,"y":65.1245436,"width":159.83523477,"height":115.27290948000002},{"x":163.3533498,"y":390.62826959999995,"width":39.72145545000001,"height":43.088939040000014},{"x":128.97874548000001,"y":395.70457932,"width":38.146139009999985,"height":48.29542068000001},{"x":233.88920624,"y":197.10711605,"width":82.20955149000002,"height":224.36723039999998}]
-    }
+      default: () => [
+        {"x":129.26811249,"y":162.8688348,"width":82.20955149000002,"height":224.36723039999998},
+        {"x":66.36025665,"y":65.1245436,"width":159.83523477,"height":115.27290948000002},
+        {"x":163.3533498,"y":390.62826959999995,"width":39.72145545000001,"height":43.088939040000014},{"x":128.97874548000001,"y":395.70457932,"width":38.146139009999985,"height":48.29542068000001},
+      ]
+    },
   },
   data() {
     return {
+      inZonePointIndex: [],
       image: null,
       initPoints: false,
       // 这个是区域点
@@ -56,7 +68,10 @@ export default {
       cutZone: {
         outline: 0,
         zone: {}
-      }
+      },
+      showClipGuide: true,
+      clipGuide: 'Adjust the box or click the dot to switch the search area',
+      textStyle: {}
     }
   },
   computed: {
@@ -79,6 +94,7 @@ export default {
     this.cutZone.outline = Math.max(mw, mh)
     // 2. 初始化点位
     this.initPoints = true
+    if (this.clipGuide) this.paintGuide()
     // 3. 画出裁剪区域
     // this.cutZone.zone = this.hotZone[0]
     // 4. 通知组件已经初始化完毕外部可以进行绘制裁切等
@@ -87,6 +103,29 @@ export default {
     })
   },
   methods: {
+    paintGuide() {
+      if (!this.hotZone.length || !this.showClipGuide) return
+      // 获取坐标最靠左的
+      let firstLeftPoint = null
+      this.hotZone.forEach(i => {
+        if (!firstLeftPoint) {
+          return firstLeftPoint = i
+        }
+        const { x0, y0 } = i
+        const { x0: fx0, y0: fy0 } = firstLeftPoint
+        if (x0 < fx0 && y0 < fy0 ) {
+          firstLeftPoint = i
+        }
+      })
+
+      const textStyle = {
+        display: 'block',
+        left: `${firstLeftPoint.x + 10 }px`,
+        top: `${firstLeftPoint.y}px`,
+        width: `${this.image.width - (firstLeftPoint.x + 10)}px`
+      }
+      this.textStyle = textStyle
+    },
     /**
      * 调用方可能会使用
      * isInnerCall 是否是自己内部调用
@@ -121,6 +160,12 @@ export default {
           height,
         }
         const imageDataUrl = await clipImage(this.image, clipInfo)
+
+        this.inZonePointIndex = this.hotZone.map((_, i) => {
+          if(inZone(_, coordinate)) {
+            return i
+          }
+        }).filter(_ => typeof _ !== 'undefined')
         // 给图片的url
         emitData.clipData = imageDataUrl
 
@@ -136,6 +181,7 @@ export default {
           return true
         })
 
+        this.inZonePointIndex = [index]
         // 给图片对应的索引
         emitData.index = index
       }
@@ -151,6 +197,15 @@ export default {
 .clip-image {
   font-size: 0;
   text-align: center;
+  &__clip-guide {
+    display: none;
+    position: absolute;
+    font-size: 12px;
+    color: #fff;
+    text-align: left;
+    padding-left: 10px;
+    transform: translateY(-50%);
+  }
   &__container {
     overflow: hidden;
     display: inline-block;

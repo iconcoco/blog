@@ -87,3 +87,7 @@ export const formattingHotPoints = (i) => {
     height,
   }
 }
+
+export const inZone = ({ x, y }, { x0, y0, x1, y1,}) => {
+  return x0 <= x && x <= x1 && y0 <= y && y <= y1
+}

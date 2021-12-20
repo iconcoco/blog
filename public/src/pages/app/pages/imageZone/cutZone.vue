@@ -1,10 +1,10 @@
 <template>
   <!-- 裁剪 -->
   <div
-    ref="clipImageCutZone"
     class="clip-image__cut-zone"
     :style="{
       'outline-width': `${outline}px`,
+      'animationDuration': `${zoneTransitionDuration}ms`,
       ...cutStyle
     }"
     @touchstart.stop="onClipTouchStard"
@@ -26,6 +26,15 @@
 
 <script>
 import { mousePointRelateReferer, formattingHotPoints } from './utils.js'
+
+const sleep = (timeout) => {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve()
+    }, timeout)
+  })
+}
+
 export default {
   name: 'ClipImageZone',
   inheritAttrs: false,
@@ -47,7 +56,8 @@ export default {
       // 图片面板
       referer: null,
 
-
+      zoneTransitionDuration: 500,
+      // preCutZone: null,
       originCutZone: null,
       touch: {
         sx: 0, // start x
@@ -77,15 +87,45 @@ export default {
 
     /**
      * 执行裁剪操作
+     * jump 选择一个目标跳转到对应指定裁剪区域
      */
-    clip(points, animate = true) {
+    async clip(points, jump = true) {
       const { x, y, x0, y0, width, height } = points
-      animate ? this.$el.classList.add('clip-image__transition') : this.$el.classList.remove('clip-image__transition')
+      if (!width || !height) return
+      jump ? this.$el.classList.add('clip-image__transition') : this.$el.classList.remove('clip-image__transition')
+      // 1. 变换之前的动画
+      if (jump && this.preCutZone) {
+        let same = true
+        for (const key in this.preCutZone) {
+          if (this.preCutZone[key] != points[key]) {
+            same = false
+          }
+        }
+
+        if (!same) {
+          this.$el.classList.add('clip-image__transition-ing')
+          this.zoneTransitionDuration = 200
+          const { x: preX, y: preY } = this.preCutZone
+          this.cutStyle = {
+            width: `0px`,
+            height: `0px`,
+            top: `${preY}px`,
+            left: `${preX}px`
+          }
+          // 等待动画结束之后在执行之后的操作
+          await sleep(this.zoneTransitionDuration)
+          this.$el.classList.remove('clip-image__transition-ing')
+          this.zoneTransitionDuration = 500
+        }
+      }
+
+      // 2. 正常变化
+      this.preCutZone = points
       this.cutStyle = {
         width: `${width}px`,
         height: `${height}px`,
-        top: `${animate ? y : y0}px`,
-        left: `${animate ? x : x0}px`
+        top: `${jump ? y : y0}px`,
+        left: `${jump ? x : x0}px`
       }
     },
 
@@ -136,7 +176,7 @@ export default {
      */
     onClipTouchEnd() {
       // 通知变更
-      this.$emit('clipZoneChange', {
+      this.realtimeZone && this.$emit('clipZoneChange', {
         zone: this.realtimeZone
       })
       // 重置所有状态
@@ -256,11 +296,18 @@ export default {
       transform: translate(-50%, -50%);
       transition: width .5s, height .5s;
     }
+    &.clip-image__transition-ing {
+      .clip-image__cut-corner {
+        display: none;
+      }
+    }
   }
   &__cut-corner {
     position: absolute;
-    width: 20px;
-    height: 20px;
+    max-width: 20px;
+    max-height: 20px;
+    width: 50%;
+    height: 50%;
     background-color: transparent;
     &::before {
       content: '';
