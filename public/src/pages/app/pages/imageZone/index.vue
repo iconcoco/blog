@@ -4,19 +4,13 @@
       ref="clipImageContainer"
       class="clip-image__container"
     >
-      <!-- 裁剪 -->
-      <cutZone
-        ref="clipImageCutZone"
-        v-bind="cutZone"
-        @clipZoneChange="handleClipZoneChange"
-      />
-
+      <!-- 蒙板 -->
+      <div class="clip-image__mask"></div> 
       <!-- 热点 -->
       <template v-if="initPoints">
         <span 
           v-for="(item, index) in hotZone"
           :key="index"
-          v-show="!inZonePointIndex.includes(index)"
           :style="{
             top: item.y + 'px',
             left: item.x + 'px',
@@ -31,6 +25,24 @@
         class="clip-image__clip-guide"
         :style="textStyle"
       >{{ clipGuide }}</i>
+
+      <!-- 关闭裁剪 -->
+      <cutZone
+        v-bind="clipImageInfo"
+        :close-zone="closeZone"
+        :close-style="closeStyle"
+      />
+
+      <!-- 裁剪 -->
+      <cutZone
+        ref="clipImageCutZone"
+        v-bind="{
+          ...clipImageInfo,
+          ...cutZone
+        }"
+        @closeStyleChange="handleClosePreZone"
+        @clipZoneChange="handleClipZoneChange"
+      />
     </div>
   </div>  
 </template>
@@ -60,10 +72,8 @@ export default {
   },
   data() {
     return {
-      inZonePointIndex: [],
       image: null,
       initPoints: false,
-      // 这个是区域点
 
       cutZone: {
         outline: 0,
@@ -71,7 +81,11 @@ export default {
       },
       showClipGuide: true,
       clipGuide: 'Adjust the box or click the dot to switch the search area',
-      textStyle: {}
+      textStyle: {},
+      closeStyle: {},
+      closeZone: {},
+      // 给裁剪区域用
+      clipImageInfo: {}
     }
   },
   computed: {
@@ -83,26 +97,30 @@ export default {
     const { mw, mh, image } = await loadImg(this.blobImage)
     if (!image) return
     this.image = image
+    this.clipImageInfo = {
+      mw, mh, imgBlog: this.blobImage
+    }
 
     const referer = this.$refs['clipImageContainer']
     referer.appendChild(image)
     const clipImageCutZone = this.$refs['clipImageCutZone']
+    // 1. 给裁剪区域通知坐标轴
     if (!clipImageCutZone) return
     clipImageCutZone.init(referer)
 
-    // 1. 画一个蒙板
-    this.cutZone.outline = Math.max(mw, mh)
     // 2. 初始化点位
     this.initPoints = true
     if (this.clipGuide) this.paintGuide()
-    // 3. 画出裁剪区域
-    // this.cutZone.zone = this.hotZone[0]
-    // 4. 通知组件已经初始化完毕外部可以进行绘制裁切等
+
+    // 3. 通知组件已经初始化完毕外部可以进行绘制裁切等
     this.$nextTick(() => {
       this.$emit('init')
     })
   },
   methods: {
+    /**
+     * 引导词
+     */
     paintGuide() {
       if (!this.hotZone.length || !this.showClipGuide) return
       // 获取坐标最靠左的
@@ -135,6 +153,11 @@ export default {
       this.cutZone.zone = isInnerCall ? points : formattingHotPoints(points)
     },
 
+    handleClosePreZone({ style, zone }) {
+      this.closeStyle = style
+      this.closeZone = zone
+    },
+
     handleClipZoneChange({ zone }) {
       this.paintZone(zone, true)
       this.publisher()
@@ -161,11 +184,6 @@ export default {
         }
         const imageDataUrl = await clipImage(this.image, clipInfo)
 
-        this.inZonePointIndex = this.hotZone.map((_, i) => {
-          if(inZone(_, coordinate)) {
-            return i
-          }
-        }).filter(_ => typeof _ !== 'undefined')
         // 给图片的url
         emitData.clipData = imageDataUrl
 
@@ -181,7 +199,6 @@ export default {
           return true
         })
 
-        this.inZonePointIndex = [index]
         // 给图片对应的索引
         emitData.index = index
       }
@@ -197,6 +214,12 @@ export default {
 .clip-image {
   font-size: 0;
   text-align: center;
+  &__mask {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, .6);
+  }
   &__clip-guide {
     display: none;
     position: absolute;

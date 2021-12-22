@@ -3,22 +3,21 @@
   <div
     class="clip-image__cut-zone"
     :style="{
-      'outline-width': `${outline}px`,
-      'animationDuration': `${zoneTransitionDuration}ms`,
+      ...imageBgStyle,
       ...cutStyle
     }"
-    @touchstart.stop="onClipTouchStard"
-    @touchmove.stop.prevent="onClipTouchMove"
-    @touchend.stop="onClipTouchEnd"
+    @touchstart.stop="(e) => referer && onClipTouchStard(e)"
+    @touchmove.stop.prevent="(e) => referer && onClipTouchMove(e)"
+    @touchend.stop="(e) => referer && onClipTouchEnd(e)"
   >
     <!-- corner -->
     <!-- 上右下左 -->
-    <template v-if="zone && Object.keys(zone).length">
+    <template v-if="zone && Object.keys(zone).length || closeZone && Object.keys(closeZone).length">
       <span 
         v-for="i in 4" 
         :key="i" 
         class="clip-image__cut-corner"
-        @touchstart="(e) => onCornerTouchStard(e, i)"
+        @touchstart="(e) => referer && onCornerTouchStard(e, i)"
       ></span>
     </template>
   </div>
@@ -27,24 +26,36 @@
 <script>
 import { mousePointRelateReferer, formattingHotPoints } from './utils.js'
 
-const sleep = (timeout) => {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      resolve()
-    }, timeout)
-  })
-}
-
 export default {
   name: 'ClipImageZone',
   inheritAttrs: false,
   props: {
-    outline: {
-      type: Number,
-      default: 0
+    imgBlog: {
+      type: String,
+      default: ''
+    },
+    mw: {
+      type: [Number, String],
+      default: ''
+    },
+    mh: {
+      type: [Number, String],
+      default: ''
+    },
+    zone: {
+      type: Object,
+      default() {
+        return {}
+      }
     },
 
-    zone: {
+    closeZone: {
+      type: Object,
+      default() {
+        return {}
+      }
+    },
+    closeStyle: {
       type: Object,
       default() {
         return {}
@@ -56,7 +67,7 @@ export default {
       // 图片面板
       referer: null,
 
-      zoneTransitionDuration: 500,
+      zoneTransitionDuration: 300,
       // preCutZone: null,
       originCutZone: null,
       touch: {
@@ -67,6 +78,7 @@ export default {
       realtimeZone: null,
       isCornerDrag: false,
       dragCornerType: '',
+      imageBgStyle: {}
     }
   },
   watch: {
@@ -78,6 +90,25 @@ export default {
       },
       immediate: true
     },
+    imgBlog: {
+      handler(val) {
+        if (val) {
+          this.imageBgStyle = {
+            'background-image': `url(data:image/jpeg;base64,${val})`,
+            'background-size': `${this.mw}px ${this.mh}px`,
+          }
+        }
+      },
+      immediate: true
+    },
+    closeStyle: {
+      handler(val) {
+        val && this.$nextTick(() => {
+          this.cutStyle = val
+        })
+      },
+      immediate: true
+    },
   },
   methods: {
     init(referer) {
@@ -85,50 +116,116 @@ export default {
       this.referer = referer
     },
 
+    animationStep(width) {
+      const frameDuration = 1000 / 60
+      const animationFrame = this.zoneTransitionDuration / frameDuration
+      return width / animationFrame
+    },
+
+    /**
+     * increase 增大
+     * decrease 减小
+     */
+    animation({ points, step = 6, action = 'increase' }, fun) {
+      const { x, y, width, height } = points
+
+      let oWidth = action == 'increase' ? 1 : width
+      let oHeight = action == 'increase' ? 1 : height
+      const ratio = height / width
+      const animation = () => {
+        if (action == 'increase') {
+          oWidth += step
+          oWidth = oWidth >= width ? width : oWidth
+        } else {
+          oWidth -= step
+          oWidth = oWidth < 0 ? 0 : oWidth
+        }
+        oHeight = ratio * oWidth
+
+        const top = `${y - oHeight / 2}px`
+        const left = `${x - oWidth / 2}px`
+
+        fun({
+          display: oWidth === 0 ? 'none' : 'block',
+          width: `${oWidth}px`,
+          height: `${oHeight}px`,
+          top,
+          left,
+          'background-position': `-${left} -${top}`
+        })
+        if ((action == 'increase' && oWidth >= width) || (action == 'decrease' && oWidth <= 0)) return
+        requestAnimationFrame(animation)
+      }
+      animation()
+
+    },
+
+    // 关闭的动画
+    closeAnimation(points) {
+      const step = this.animationStep(points.width)
+      this.animation({
+        points,
+        step, // 每一帧移动的变量 px
+        action: 'decrease'
+      }, (val) => {
+        this.$emit('closeStyleChange', {
+          style: val,
+          zone: points, // 关闭的区域点位信息
+        })
+      })
+    },
+    
+    clipAnimation(points, jump = true) {
+      const { x0, y0, width, height } = points
+      this.preCutZone = points  // 保存一个前一个裁剪的动画
+      // 1. 拖拽实时更新 没有动画
+      if (!jump) {
+        this.cutStyle = {
+          width: `${width}px`,
+          height: `${height}px`,
+          top: `${y0}px`,
+          left: `${x0}px`,
+          'background-position': `-${x0}px -${y0}px`
+        }
+        return
+      }
+
+      const step = this.animationStep(width)
+      // 2. 点击更新，有动画
+      this.animation({
+        points,
+        step, // 每一帧移动的变量 px
+        action: 'increase'
+      }, (val) => {
+        this.cutStyle = val
+      })
+    },
+
     /**
      * 执行裁剪操作
      * jump 选择一个目标跳转到对应指定裁剪区域
      */
     async clip(points, jump = true) {
-      const { x, y, x0, y0, width, height } = points
+      const { width, height } = points
       if (!width || !height) return
-      jump ? this.$el.classList.add('clip-image__transition') : this.$el.classList.remove('clip-image__transition')
-      // 1. 变换之前的动画
+      let same = !!this.preCutZone
+      // 是否需要动画 同一个选择框不需要动画
       if (jump && this.preCutZone) {
-        let same = true
         for (const key in this.preCutZone) {
           if (this.preCutZone[key] != points[key]) {
             same = false
           }
         }
 
-        if (!same) {
-          this.$el.classList.add('clip-image__transition-ing')
-          this.zoneTransitionDuration = 200
-          const { x: preX, y: preY } = this.preCutZone
-          this.cutStyle = {
-            width: `0px`,
-            height: `0px`,
-            top: `${preY}px`,
-            left: `${preX}px`
-          }
-          // 等待动画结束之后在执行之后的操作
-          await sleep(this.zoneTransitionDuration)
-          this.$el.classList.remove('clip-image__transition-ing')
-          this.zoneTransitionDuration = 500
-        }
+        // 关闭前一个剪切的区域
+        !same && this.closeAnimation(this.preCutZone)
       }
-
-      // 2. 正常变化
-      this.preCutZone = points
-      this.cutStyle = {
-        width: `${width}px`,
-        height: `${height}px`,
-        top: `${jump ? y : y0}px`,
-        left: `${jump ? x : x0}px`
-      }
+      this.clipAnimation(points, jump && !same)
     },
 
+    /**
+     * 重置在移动过程中的状态
+     */
     reset() {
       this.isCornerDrag = false
       this.dragCornerType = ''
@@ -291,62 +388,43 @@ export default {
     height: 0;
     top: 0;
     background-color: transparent;
-    outline: 100px solid rgba(0, 0, 0, .6);
-    &.clip-image__transition {
-      transform: translate(-50%, -50%);
-      transition: width .5s, height .5s;
-    }
-    &.clip-image__transition-ing {
-      .clip-image__cut-corner {
-        display: none;
-      }
-    }
   }
   &__cut-corner {
     position: absolute;
     max-width: 20px;
     max-height: 20px;
-    width: 50%;
-    height: 50%;
+    width: 30%;
+    height: 30%;
     background-color: transparent;
-    &::before {
-      content: '';
-      position: absolute;
-      width: 3px;
-      height: 100%;
-      background-color: #fff;
-      top: 0;
-      left: 0;
-    }
-    &::after {
-      content: '';
-      position: absolute;
-      width: 100%;
-      height: 3px;
-      background-color: #fff;
-      top: 0;
-      left: 0;
-    }
+    border: 3px solid #fff; 
 
     &:nth-child(1) {
       left: 0;
       top: 0;
       transform: translate(-3px, -3px);
+      border-right: transparent;
+      border-bottom: transparent;
     }
     &:nth-child(2) {
       right: 0;
       top: 0;
-      transform: translate(3px, -3px) rotate(90deg);
+      transform: translate(3px, -3px);
+      border-left: transparent;
+      border-bottom: transparent;
     }
     &:nth-child(3) {
       right: 0;
       bottom: 0;
-      transform: translate(3px, 3px) rotate(180deg);
+      transform: translate(3px, 3px);
+      border-top: transparent;
+      border-left: transparent;
     }
     &:nth-child(4) {
       left: 0;
       bottom: 0;
-      transform: translate(-3px, 3px) rotate(-90deg);
+      transform: translate(-3px, 3px);
+      border-top: transparent;
+      border-right: transparent;
     }
   }
 }
