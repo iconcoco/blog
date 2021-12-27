@@ -30,6 +30,11 @@ export default {
   name: 'ClipImageZone',
   inheritAttrs: false,
   props: {
+    type: {
+      type: String,
+      default: 'select'
+    },
+
     imgBlog: {
       type: String,
       default: ''
@@ -93,7 +98,10 @@ export default {
     imgBlog: {
       handler(val) {
         if (val) {
-          this.imageBgStyle = {
+          this.imageBgStyle = this.type === 'select' ? {
+            'outline-width': `${ Math.max(this.mw, this.mh) }px`,
+            'outline-style': 'solid',
+          } : {
             'background-image': `url(data:image/jpeg;base64,${val})`,
             'background-size': `${this.mw}px ${this.mh}px`,
           }
@@ -151,7 +159,6 @@ export default {
           height: `${oHeight}px`,
           top,
           left,
-          'background-position': `-${left} -${top}`
         })
         if ((action == 'increase' && oWidth >= width) || (action == 'decrease' && oWidth <= 0)) return
         requestAnimationFrame(animation)
@@ -169,7 +176,9 @@ export default {
         action: 'decrease'
       }, (val) => {
         this.$emit('closeStyleChange', {
-          style: val,
+          style: Object.assign({}, val, {
+            'background-position': `-${val.left} -${val.top}`
+          }),
           zone: points, // 关闭的区域点位信息
         })
       })
@@ -185,7 +194,6 @@ export default {
           height: `${height}px`,
           top: `${y0}px`,
           left: `${x0}px`,
-          'background-position': `-${x0}px -${y0}px`
         }
         return
       }
@@ -388,6 +396,7 @@ export default {
     height: 0;
     top: 0;
     background-color: transparent;
+    outline-color: rgba(0, 0, 0, .6);
   }
   &__cut-corner {
     position: absolute;
